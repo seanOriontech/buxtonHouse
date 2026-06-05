@@ -36,6 +36,20 @@ function getSortValue(apt: ApartmentRow, key: SortKey): number {
 
 const LIVING_TYPE = "Apartment Living";
 
+// Frozen left columns. left offsets MUST equal the running sum of the widths,
+// and the widths are enforced inline (auto table-layout otherwise renders the
+// Tailwind w-* hints narrower, so a hardcoded `left` overshoots and the frozen
+// column slides over the first data column).
+const FROZEN = {
+  apt: { left: 0,   width: 72  },
+  occ: { left: 72,  width: 120 },
+  sex: { left: 192, width: 76  },
+} as const;
+
+function frozenStyle(col: { left: number; width: number }): React.CSSProperties {
+  return { left: col.left, width: col.width, minWidth: col.width, maxWidth: col.width };
+}
+
 const UTILITIES = [
   { key: "cold_water",  label: "Cold water",  tone: "sky"   },
   { key: "hot_water",   label: "Hot water",   tone: "rose"  },
@@ -205,13 +219,13 @@ export default function ApartmentLivingUtilitiesPage() {
           <thead className="bg-neutral-900 text-neutral-300">
             {/* Row 1 — utility group + tariff */}
             <tr className="border-b border-neutral-800">
-              <th rowSpan={4} className="sticky left-0 z-10 w-20 bg-neutral-900 px-3 py-2 text-left">
+              <th rowSpan={4} style={frozenStyle(FROZEN.apt)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">
                 <SortHeader k="apartment_number" className="!justify-start">Apt</SortHeader>
               </th>
-              <th rowSpan={4} className="sticky left-20 z-10 w-28 bg-neutral-900 px-3 py-2 text-left">
+              <th rowSpan={4} style={frozenStyle(FROZEN.occ)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">
                 <SortHeader k="occupants" className="!justify-start">Occupants</SortHeader>
               </th>
-              <th rowSpan={4} className="sticky left-48 z-10 w-20 bg-neutral-900 px-3 py-2 text-left">Sex</th>
+              <th rowSpan={4} style={frozenStyle(FROZEN.sex)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">Sex</th>
               {UTILITIES.map((u) => {
                 const t = data?.tariffs[u.key];
                 const label = t
@@ -333,9 +347,9 @@ function ApartmentDataRow({ apt, striped }: { apt: ApartmentRow; striped: boolea
 
   return (
     <tr className="text-neutral-200 hover:bg-neutral-900/50">
-      <td className={`sticky left-0 z-10 w-20 ${stickyBg} px-3 py-2 font-medium`}>{apt.apartment_number}</td>
-      <td className={`sticky left-20 z-10 w-28 ${stickyBg} px-3 py-2 tabular-nums`}>{occ}</td>
-      <td className={`sticky left-48 z-10 w-20 ${stickyBg} px-3 py-2 text-neutral-400`}>Mixed</td>
+      <td style={frozenStyle(FROZEN.apt)} className={`sticky z-20 ${stickyBg} px-3 py-2 font-medium`}>{apt.apartment_number}</td>
+      <td style={frozenStyle(FROZEN.occ)} className={`sticky z-20 ${stickyBg} px-3 py-2 tabular-nums`}>{occ}</td>
+      <td style={frozenStyle(FROZEN.sex)} className={`sticky z-20 ${stickyBg} px-3 py-2 text-neutral-400`}>Mixed</td>
 
       {UTILITIES.flatMap((u) => {
         const util = apt.utilities[u.key];

@@ -58,6 +58,20 @@ const TONE = "border-amber-500/30 bg-amber-500/10 text-amber-300";
 const CELL_TONE_DARK = "bg-amber-500/15";   // striped row
 const CELL_TONE_LIGHT = "bg-amber-500/5";   // normal row
 
+// Frozen left columns. left offsets MUST equal the running sum of the widths,
+// and the widths are enforced inline (auto table-layout otherwise renders the
+// Tailwind w-* hints narrower, so a hardcoded `left` overshoots and the frozen
+// column slides over the first data column).
+const FROZEN = {
+  room: { left: 0,   width: 72  },
+  occ:  { left: 72,  width: 120 },
+  sex:  { left: 192, width: 76  },
+} as const;
+
+function frozenStyle(col: { left: number; width: number }): React.CSSProperties {
+  return { left: col.left, width: col.width, minWidth: col.width, maxWidth: col.width };
+}
+
 export default function CommunalLivingPage() {
   const [data, setData] = useState<CommunalReportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,13 +160,13 @@ export default function CommunalLivingPage() {
           <thead className="bg-neutral-900 text-neutral-300">
             {/* Row 1 — utility group + tariff */}
             <tr className="border-b border-neutral-800">
-              <th rowSpan={4} className="sticky left-0 z-10 w-20 bg-neutral-900 px-3 py-2 text-left">
+              <th rowSpan={4} style={frozenStyle(FROZEN.room)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">
                 <SortHeader k="room_number" className="!justify-start">Room</SortHeader>
               </th>
-              <th rowSpan={4} className="sticky left-20 z-10 w-28 bg-neutral-900 px-3 py-2 text-left">
+              <th rowSpan={4} style={frozenStyle(FROZEN.occ)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">
                 <SortHeader k="occupants" className="!justify-start">Occupants</SortHeader>
               </th>
-              <th rowSpan={4} className="sticky left-48 z-10 w-20 bg-neutral-900 px-3 py-2 text-left">Sex</th>
+              <th rowSpan={4} style={frozenStyle(FROZEN.sex)} className="sticky z-20 bg-neutral-900 px-3 py-2 text-left">Sex</th>
               <th
                 colSpan={3 * 4}
                 className={`border-l border-neutral-800 border-b px-3 py-2 ${TONE}`}
@@ -248,9 +262,9 @@ function RoomRow({ room, striped }: { room: RoomReportRow; striped: boolean }) {
 
   return (
     <tr className="text-neutral-200 hover:bg-neutral-900/50">
-      <td className={`sticky left-0 z-10 w-20 ${stickyBg} px-3 py-2 font-medium`}>{room.room_number}</td>
-      <td className={`sticky left-20 z-10 w-28 ${stickyBg} px-3 py-2 tabular-nums`}>{occ}</td>
-      <td className={`sticky left-48 z-10 w-20 ${stickyBg} px-3 py-2 text-neutral-400`}>Mixed</td>
+      <td style={frozenStyle(FROZEN.room)} className={`sticky z-20 ${stickyBg} px-3 py-2 font-medium`}>{room.room_number}</td>
+      <td style={frozenStyle(FROZEN.occ)} className={`sticky z-20 ${stickyBg} px-3 py-2 tabular-nums`}>{occ}</td>
+      <td style={frozenStyle(FROZEN.sex)} className={`sticky z-20 ${stickyBg} px-3 py-2 text-neutral-400`}>Mixed</td>
 
       {PERIODS.map((p) => {
         const period = room.electricity[p.key];
