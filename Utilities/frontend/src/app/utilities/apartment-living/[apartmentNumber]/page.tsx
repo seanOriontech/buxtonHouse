@@ -16,7 +16,10 @@ import {
   type DailySeriesResponse,
 } from "@/lib/api";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
@@ -355,6 +358,19 @@ export default function ApartmentDetailPage() {
       <LoadingOverlay active={loading} label="Aggregating sub-meters…" />
       </div>
 
+      {/* Per-bedroom electricity — ranked bar chart (who's using the most) */}
+      {(loading || (data?.bedrooms.length ?? 0) > 0) && (
+        <div className="relative">
+        <Card>
+          <CardHeader
+            title="Who's using the most — electricity by bedroom"
+            subtitle="Bedrooms ranked by consumption. The heaviest user is highlighted."
+          />
+          <BedroomUsageChart bedrooms={data?.bedrooms ?? []} loading={loading} />
+        </Card>
+        </div>
+      )}
+
       {/* 10-day trend */}
       <div className="relative">
       <Card>
@@ -556,6 +572,96 @@ function UtilityCardView({
         Total cost MTD: <span className="font-medium text-neutral-100">{card ? fmtCost(card.mtd_cost) : <Skeleton className="inline-block h-3 w-16 align-middle" />}</span>
       </div>
     </Card>
+  );
+}
+
+function BedroomUsageChart({
+  bedrooms,
+  loading,
+}: {
+  bedrooms: ApartmentDetailResponse["bedrooms"];
+  loading?: boolean;
+}) {
+  const [metric, setMetric] = useState<"mtd" | "today">("mtd");
+
+  const chartData = useMemo(() => {
+    const rows = bedrooms.map((b) => ({
+      name: b.room_name,
+      kwh: metric === "mtd" ? b.mtd_kwh : b.today_kwh,
+      cost: metric === "mtd" ? b.mtd_cost : b.today_cost,
+      pct: metric === "mtd" ? b.mtd_pct : b.today_pct,
+    }));
+    rows.sort((a, b) => b.kwh - a.kwh);
+    return rows;
+  }, [bedrooms, metric]);
+
+  const maxKwh = chartData.length ? chartData[0].kwh : 0;
+  // One row ≈ 44px; keep a sensible floor so a single bedroom still reads well.
+  const height = Math.max(160, chartData.length * 44 + 48);
+
+  return (
+    <div className="px-5 py-4">
+      <div className="mb-3 flex items-center justify-end gap-1">
+        {([
+          { k: "mtd", label: "Month to date" },
+          { k: "today", label: "Today so far" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.k}
+            type="button"
+            onClick={() => setMetric(opt.k)}
+            className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
+              metric === opt.k
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                : "border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-neutral-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {chartData.length === 0 ? (
+        <div className="relative h-40 overflow-hidden rounded-md bg-neutral-950">
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900" />
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-neutral-900/90 px-3 py-1 text-xs text-amber-300">
+                <Spinner /> <span>Loading chart…</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ height }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 64, bottom: 4, left: 8 }}>
+              <CartesianGrid stroke="#262626" strokeDasharray="2 4" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "#a3a3a3", fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" width={130} tick={{ fill: "#d4d4d4", fontSize: 11 }} />
+              <Tooltip
+                cursor={{ fill: "#ffffff0a" }}
+                contentStyle={{ background: "#0a0a0a", border: "1px solid #404040", fontSize: 11 }}
+                labelStyle={{ color: "#fafafa" }}
+                formatter={(value: number, _name, item) => {
+                  const p = (item?.payload ?? {}) as { cost?: number; pct?: number };
+                  return [`${value.toFixed(2)} kWh · ${fmtCost(p.cost)} · ${(p.pct ?? 0).toFixed(1)}% of apt`, "Usage"];
+                }}
+              />
+              <Bar
+                dataKey="kwh"
+                radius={[0, 4, 4, 0]}
+                label={{ position: "right", fill: "#a3a3a3", fontSize: 10, formatter: (v: number) => `${v.toFixed(1)} kWh` }}
+              >
+                {chartData.map((d, i) => (
+                  <Cell key={i} fill={maxKwh > 0 && d.kwh === maxKwh ? "#fbbf24" : "#b45309"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 }
 

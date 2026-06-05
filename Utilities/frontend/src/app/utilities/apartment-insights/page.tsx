@@ -92,20 +92,43 @@ function utilityStatusTone(
   return "emerald";
 }
 
+// Plain-language usage level from a 0–100 percentile rank, so a general reader
+// doesn't have to interpret "P74".
+function usageWord(percentile: number): string {
+  if (percentile >= 90) return "Among the highest";
+  if (percentile >= 70) return "High";
+  if (percentile >= 50) return "Above average";
+  if (percentile >= 25) return "Typical";
+  return "Low";
+}
+
 function utilityStatusLabel(
   utility: UtilityType,
   u: ApartmentInsight["utilities"][string],
   combined: ApartmentInsight["combined_water"],
 ): string {
   if (WATER_UTILITIES.has(utility)) {
-    if (combined.flags.over_daily && combined.flags.over_monthly) return "water over daily + monthly";
-    if (combined.flags.over_daily)   return "water over daily";
-    if (combined.flags.over_monthly) return "water over monthly";
+    if (combined.flags.over_daily && combined.flags.over_monthly) return "Over daily & monthly limit";
+    if (combined.flags.over_daily)   return "Over daily limit";
+    if (combined.flags.over_monthly) return "Over monthly limit";
   }
-  if (u.flags.top_decile && u.flags.forecast_over_median_15x) return "heavy + forecast over";
-  if (u.flags.top_decile) return "heavy";
-  if (u.flags.forecast_over_median_15x) return "forecast over";
-  return "normal";
+  if (u.flags.top_decile) return "Among the highest";
+  if (u.flags.forecast_over_median_15x) return "On track to be high";
+  return usageWord(u.percentile_rank);
+}
+
+// "1.8× a typical flat" — this flat's per-person use vs the cohort median.
+function ratioVsTypical(value: number, median: number): string {
+  if (!(median > 0)) return "";
+  return `${(value / median).toFixed(1)}× a typical flat`;
+}
+
+// Tooltip that spells out the percentile in words for anyone who wants the detail.
+function statusTooltip(u: ApartmentInsight["utilities"][string]): string {
+  const p = Math.round(u.percentile_rank);
+  let t = `Uses more than ${p}% of similar flats this month`;
+  if (u.flags.forecast_over_median_15x) t += "; projected to finish well above a typical flat";
+  return t;
 }
 
 function toneBg(tone: "sky" | "rose" | "amber"): string {
@@ -288,7 +311,7 @@ export default function ApartmentInsightsPage() {
           Watchlist for {LIVING_TYPE}.{" "}
           {data?.report_date && <>Report date <span className="text-neutral-300">{data.report_date}</span>.</>}{" "}
           {data && <>Day <span className="text-neutral-300">{data.days_elapsed_mtd}</span> of <span className="text-neutral-300">{data.days_in_month}</span>.</>}{" "}
-          {data && <>Cohort N = <span className="text-neutral-300">{data.apartments.length}</span>.</>}
+          {data && <>Comparing <span className="text-neutral-300">{data.apartments.length}</span> flats.</>}
         </p>
         {data && (
           <div className="mt-3 flex flex-wrap gap-2 text-sm">
@@ -296,8 +319,12 @@ export default function ApartmentInsightsPage() {
               const cs = data.cohort_stats[u.key];
               if (!cs) return null;
               return (
-                <span key={u.key} className={`rounded-md border px-2.5 py-1 ${toneBg(u.tone)}`}>
-                  {u.label} · median {fmtUnits(cs.median, u.key === "electricity" ? "kWh" : "litre")} · P90 {fmtUnits(cs.p90, u.key === "electricity" ? "kWh" : "litre")} per person MTD
+                <span
+                  key={u.key}
+                  title="Per person, this month. “Typical” is the middle flat; “among the highest” is the busiest 10%."
+                  className={`cursor-help rounded-md border px-2.5 py-1 ${toneBg(u.tone)}`}
+                >
+                  {u.label}: typical flat {fmtUnits(cs.median, u.key === "electricity" ? "kWh" : "litre")} · among the highest above {fmtUnits(cs.p90, u.key === "electricity" ? "kWh" : "litre")} · per person this month
                 </span>
               );
             })}
@@ -449,13 +476,13 @@ export default function ApartmentInsightsPage() {
       <Card>
         <CardHeader
           title={`Watchlist (top ${watchlist.length})`}
-          subtitle="Sorted by composite risk score: percentile rank + forecast over peer median + allowance breach. Click any column to re-sort."
+          subtitle="Flats that stand out from their peers — ranked by how heavily they're using, how the month is trending, and any limit breaches. All usage figures are per person. Click any column to re-sort."
         />
         {loading ? (
           <div className="h-40 animate-pulse rounded-b-lg bg-neutral-900" />
         ) : watchlist.length === 0 ? (
           <p className="px-5 py-10 text-center text-base text-neutral-500">
-            No flagged apartments — every apartment is below the peer median × 1.5 forecast threshold and outside the top decile.
+            No flats stand out — everyone is tracking near or below a typical flat this month.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -477,25 +504,25 @@ export default function ApartmentInsightsPage() {
                       {u.label}
                     </th>
                   ))}
-                  <th rowSpan={2} className="border-l border-neutral-800 bg-emerald-950/30 px-3 py-2 text-right text-emerald-300">
-                    <SortBtn current={sortKey} dir={sortDir} k="total_eom_forecast_cost" toggle={toggleSort}>EOM forecast</SortBtn>
+                  <th rowSpan={2} title="Projected total cost for the full month" className="border-l border-neutral-800 bg-emerald-950/30 px-3 py-2 text-right text-emerald-300">
+                    <SortBtn current={sortKey} dir={sortDir} k="total_eom_forecast_cost" toggle={toggleSort}>Forecast cost</SortBtn>
                   </th>
-                  <th rowSpan={2} className="border-l border-neutral-800 bg-emerald-950/30 px-3 py-2 text-right text-emerald-300">
-                    <SortBtn current={sortKey} dir={sortDir} k="risk_score" toggle={toggleSort}>Risk</SortBtn>
+                  <th rowSpan={2} title="How much this flat stands out overall — higher means look at it first" className="border-l border-neutral-800 bg-emerald-950/30 px-3 py-2 text-right text-emerald-300">
+                    <SortBtn current={sortKey} dir={sortDir} k="risk_score" toggle={toggleSort}>Priority</SortBtn>
                   </th>
                 </tr>
                 <tr className="border-b border-neutral-800 text-neutral-500">
                   {UTILITIES.flatMap((u) => [
-                    <th key={`${u.key}-yday`} className="border-l border-neutral-800 px-2 py-1.5 text-right font-normal">
-                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.yday_per_person`} toggle={toggleSort}>Yday/p</SortBtn>
+                    <th key={`${u.key}-yday`} title="Yesterday — per person" className="border-l border-neutral-800 px-2 py-1.5 text-right font-normal">
+                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.yday_per_person`} toggle={toggleSort}>Yesterday</SortBtn>
                     </th>,
-                    <th key={`${u.key}-mtd`} className="px-2 py-1.5 text-right font-normal">
-                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.mtd_per_person`} toggle={toggleSort}>MTD/p</SortBtn>
+                    <th key={`${u.key}-mtd`} title="Month so far — per person" className="px-2 py-1.5 text-right font-normal">
+                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.mtd_per_person`} toggle={toggleSort}>This month</SortBtn>
                     </th>,
-                    <th key={`${u.key}-eom`} className="px-2 py-1.5 text-right font-normal">
-                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.eom_per_person`} toggle={toggleSort}>EOM/p</SortBtn>
+                    <th key={`${u.key}-eom`} title="Projected for the full month — per person" className="px-2 py-1.5 text-right font-normal">
+                      <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.eom_per_person`} toggle={toggleSort}>Forecast</SortBtn>
                     </th>,
-                    <th key={`${u.key}-pct`} className="px-2 py-1.5 text-right font-normal">
+                    <th key={`${u.key}-pct`} title="How this flat compares to similar flats" className="px-2 py-1.5 text-right font-normal">
                       <SortBtn current={sortKey} dir={sortDir} k={`${u.key}.percentile`} toggle={toggleSort}>Status</SortBtn>
                     </th>,
                   ])}
@@ -515,8 +542,8 @@ export default function ApartmentInsightsPage() {
       {forecastWarnings.length > 0 && (
         <Card>
           <CardHeader
-            title={`End-of-month forecast warnings (${forecastWarnings.length})`}
-            subtitle="Apartments where the projected per-person consumption exceeds the cohort median by more than 1.5×."
+            title={`Trending high — heads-up for ${forecastWarnings.length}`}
+            subtitle="Flats on track to use more than 1.5× a typical flat by month-end, per person."
           />
           <table className="w-full text-sm">
             <thead className="bg-neutral-950 text-xs uppercase tracking-wider text-neutral-500">
@@ -525,8 +552,8 @@ export default function ApartmentInsightsPage() {
                 <th className="px-3 py-2 text-left">Occ</th>
                 <th className="px-3 py-2 text-left">Utility</th>
                 <th className="px-3 py-2 text-right">Forecast (per person)</th>
-                <th className="px-3 py-2 text-right">Cohort median</th>
-                <th className="px-3 py-2 text-right">Ratio</th>
+                <th className="px-3 py-2 text-right" title="What a typical (middle) flat uses, per person">Typical flat</th>
+                <th className="px-3 py-2 text-right" title="How many times a typical flat this one is projected to use">vs typical</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-900">
@@ -544,7 +571,7 @@ export default function ApartmentInsightsPage() {
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtUnits(util.eom_forecast_units_per_person, unitLabel, { perPerson: true })}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-neutral-400">{fmtUnits(util.cohort_median, unitLabel, { perPerson: true })}</td>
-                    <td className="px-3 py-2 text-right tabular-nums font-medium text-amber-300">×{w.ratio.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-medium text-amber-300">{w.ratio.toFixed(1)}× typical</td>
                   </tr>
                 );
               })}
@@ -558,7 +585,7 @@ export default function ApartmentInsightsPage() {
         <Card>
           <CardHeader
             title={`Staff Quarters (${staffData.rooms.length})`}
-            subtitle="Tracked separately so staff use doesn't skew the student cohort percentiles. No allowance flags applied here."
+            subtitle="Tracked separately so staff use doesn't distort the comparison between student flats. No usage limits applied here."
           />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -699,7 +726,14 @@ function ApartmentWatchlistRow({ apt, striped }: { apt: ApartmentInsight; stripe
               {fmtUnits(util.eom_forecast_units_per_person, unitLabel, { perPerson: true })}
             </td>
             <td className="whitespace-nowrap px-2 py-2 text-right">
-              <Pill tone={tone}>{label} · P{Math.round(util.percentile_rank)}</Pill>
+              <span title={statusTooltip(util)} className="inline-flex cursor-help flex-col items-end gap-0.5">
+                <Pill tone={tone}>{label}</Pill>
+                {ratioVsTypical(util.mtd_units_per_person, util.cohort_median) && (
+                  <span className="text-[11px] text-neutral-400">
+                    {ratioVsTypical(util.mtd_units_per_person, util.cohort_median)}
+                  </span>
+                )}
+              </span>
             </td>
           </Fragment>
         );
@@ -1089,7 +1123,7 @@ function ElectricityTrendsTab({
       <Card>
         <CardHeader
           title="Electricity — yesterday vs day before (per person)"
-          subtitle={`kWh per person. Reference line at yesterday's cohort P90 (${p90.toFixed(2)} kWh) — apartments above are in the top decile.`}
+          subtitle={`kWh per person. The dotted line marks the "among the highest" threshold (${p90.toFixed(2)} kWh) — flats above it are in the busiest 10% yesterday.`}
         />
         <div className="px-5 py-4">
           <div className="h-80">
@@ -1125,7 +1159,7 @@ function ElectricityTrendsTab({
       <Card>
         <CardHeader
           title={`Consistently high electricity users — last ${series.days} days`}
-          subtitle="Number of days in the window where the apartment was in the top decile (P90+) of per-person consumption. 7/7 means it's been heavy every day."
+          subtitle="How many days in this window the flat was among the busiest 10% for electricity per person. 7/7 means every day."
         />
         <table className="w-full text-sm">
           <thead className="text-xs uppercase tracking-wider text-neutral-500">
