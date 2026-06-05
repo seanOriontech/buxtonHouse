@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --sidenav-w: 0px;             /* small screens: sidebar is hidden */
+}
+
+@media (min-width: 768px) {
+  :root { --sidenav-w: 15rem; } /* md+: default expanded */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+}
+
+* {
+  border-color: theme("colors.neutral.800");
+}
+
+/* ============================================================
+   Lite mode — overrides hardcoded neutral palette across pages.
+   Activated by adding the `light` class on <html>.
+   ============================================================ */
+
+html.light {
+  --background: #f8fafc;          /* slate-50 */
+  --foreground: #0f172a;          /* slate-900 */
+}
+
+html.light * { border-color: #e5e7eb; }                            /* gray-200 */
+
+/* ---- Surfaces (darkest → lightest in dark theme; flip the order) ---- */
+html.light .bg-neutral-950 { background-color: #ffffff !important; }
+html.light .bg-neutral-900 { background-color: #f8fafc !important; }   /* slate-50 */
+html.light .bg-neutral-800 { background-color: #e2e8f0 !important; }   /* slate-200 — used for skeletons / chips */
+
+html.light .bg-neutral-950\/90  { background-color: rgba(255,255,255,0.9) !important; }
+html.light .bg-neutral-950\/95  { background-color: rgba(248,250,252,0.95) !important; }
+html.light .bg-neutral-950\/50  { background-color: rgba(255,255,255,0.6) !important; }
+html.light .bg-neutral-900\/70  { background-color: rgba(241,245,249,0.85) !important; }
+html.light .bg-neutral-900\/50  { background-color: rgba(241,245,249,0.7) !important; }
+html.light .bg-neutral-900\/90  { background-color: rgba(248,250,252,0.95) !important; }
+
+/* ---- Text ---- */
+html.light .text-neutral-100,
+html.light .text-white          { color: #0f172a !important; }     /* slate-900 */
+html.light .text-neutral-200    { color: #1e293b !important; }
+html.light .text-neutral-300    { color: #334155 !important; }
+html.light .text-neutral-400    { color: #475569 !important; }
+html.light .text-neutral-500    { color: #64748b !important; }
+
+/* ---- Borders ---- */
+html.light .border-neutral-700,
+html.light .border-neutral-800  { border-color: #e2e8f0 !important; }
+html.light .border-neutral-900  { border-color: #f1f5f9 !important; }
+html.light .divide-neutral-900 > * + * { border-color: #f1f5f9 !important; }
+html.light .divide-neutral-800 > * + * { border-color: #e2e8f0 !important; }
+
+/* ---- Accent backgrounds — keep tints subtle and readable on white ---- */
+html.light .bg-emerald-500\/10  { background-color: rgba(16,185,129,0.10) !important; }
+html.light .bg-emerald-500\/15  { background-color: rgba(16,185,129,0.14) !important; }
+html.light .bg-emerald-500\/20  { background-color: rgba(16,185,129,0.18) !important; }
+html.light .bg-emerald-950\/10  { background-color: rgba(16,185,129,0.06) !important; }
+html.light .bg-emerald-950\/20  { background-color: rgba(16,185,129,0.10) !important; }
+html.light .bg-emerald-950\/30  { background-color: rgba(16,185,129,0.14) !important; }
+html.light .bg-emerald-950\/40  { background-color: rgba(16,185,129,0.18) !important; }
+html.light .bg-sky-500\/5       { background-color: rgba(14,165,233,0.06) !important; }
+html.light .bg-sky-500\/10      { background-color: rgba(14,165,233,0.10) !important; }
+html.light .bg-sky-500\/15      { background-color: rgba(14,165,233,0.14) !important; }
+html.light .bg-rose-500\/5      { background-color: rgba(244,63,94,0.06) !important; }
+html.light .bg-rose-500\/10     { background-color: rgba(244,63,94,0.10) !important; }
+html.light .bg-rose-500\/15     { background-color: rgba(244,63,94,0.14) !important; }
+html.light .bg-amber-500\/5     { background-color: rgba(245,158,11,0.07) !important; }
+html.light .bg-amber-500\/10    { background-color: rgba(245,158,11,0.12) !important; }
+html.light .bg-amber-500\/15    { background-color: rgba(245,158,11,0.16) !important; }
+html.light .bg-red-500\/10      { background-color: rgba(239,68,68,0.12) !important; }
+
+/* ---- Accent text on a light background needs darker tints to stay readable ---- */
+html.light .text-emerald-300    { color: #047857 !important; }    /* emerald-700 */
+html.light .text-emerald-400    { color: #059669 !important; }
+html.light .text-amber-300      { color: #b45309 !important; }    /* amber-700 */
+html.light .text-amber-400      { color: #d97706 !important; }
+html.light .text-rose-300       { color: #be123c !important; }    /* rose-700 */
+html.light .text-sky-300        { color: #0369a1 !important; }    /* sky-700 */
+html.light .text-red-300        { color: #b91c1c !important; }    /* red-700 */
+
+/* ---- Form controls ---- */
+html.light input[type="number"],
+html.light input[type="text"],
+html.light input[type="date"],
+html.light input[type="search"],
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;     /* slate-300 */
+}
+
+/* ---- Scrollbar (WebKit) ---- */
+html.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+html.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
