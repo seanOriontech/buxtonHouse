@@ -14,6 +14,7 @@ const SECTIONS: NavSection[] = [
       { href: "/", label: "Overview" },
       { href: "/category-overview", label: "Category breakdown" },
       { href: "/trends", label: "Trends" },
+      { href: "/hot-water-ring", label: "HW Ring Main" },
       { href: "/occupancy", label: "Occupancy" },
     ],
   },

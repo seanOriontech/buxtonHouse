@@ -151,6 +151,23 @@ export interface AuxTag {
   stale: boolean;
 }
 
+export interface RingDay {
+  date: string;
+  ring_main: number;
+  supply_ring: number;
+  difference: number;
+}
+
+export interface HotWaterRingResponse {
+  units: string;
+  ring_main_meter: string;
+  supply_ring_meter: string;
+  date_range: [string, string];
+  days: number;
+  rows: RingDay[];
+  totals: { ring_main: number; supply_ring: number; difference: number };
+}
+
 export interface CategoryTotal {
   category: string;
   utility_type: string;
@@ -317,6 +334,12 @@ export const api = {
   },
   auxTags: {
     list: () => http<AuxTag[]>("/aux-tags"),
+  },
+  hotWaterRing: {
+    daily: (days = 30, on?: string) =>
+      http<HotWaterRingResponse>("/usage/hot-water-ring", {
+        query: { days, ...(on ? { on } : {}) },
+      }),
   },
   tariffs: {
     list: (opts?: {

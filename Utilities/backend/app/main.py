@@ -19,6 +19,7 @@ from app.routers import (  # noqa: F401 (registered below)
     communal_detail,
     communal_insights,
     communal_report,
+    hot_water_ring,
     leak_detail,
     living_types,
     meters,
@@ -60,6 +61,7 @@ app.include_router(room_types.router)
 app.include_router(rooms.router)
 app.include_router(meters.router)
 app.include_router(aux_tags.router)
+app.include_router(hot_water_ring.router)
 app.include_router(tariffs.router)
 app.include_router(usage.router)
 app.include_router(apartment_report.router)
