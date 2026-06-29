@@ -142,6 +142,15 @@ export interface LatestReading {
   utility_type: string | null;
 }
 
+export interface AuxTag {
+  external_id: string;
+  value: number | null;
+  units: string | null;
+  description: string | null;
+  last_seen: string | null;
+  stale: boolean;
+}
+
 export interface CategoryTotal {
   category: string;
   utility_type: string;
@@ -305,6 +314,9 @@ export const api = {
       http<Meter>(`/meters/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     remove: (id: string) => http<void>(`/meters/${id}`, { method: "DELETE" }),
     discover: () => http<DiscoveredMeter[]>("/meters/discover"),
+  },
+  auxTags: {
+    list: () => http<AuxTag[]>("/aux-tags"),
   },
   tariffs: {
     list: (opts?: {

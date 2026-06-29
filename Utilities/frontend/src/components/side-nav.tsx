@@ -33,6 +33,7 @@ const SECTIONS: NavSection[] = [
       { href: "/rooms", label: "Rooms" },
       { href: "/rooms-by-type", label: "Rooms by type" },
       { href: "/meters", label: "Meters" },
+      { href: "/aux-tags", label: "Aux Tags" },
       { href: "/living-types", label: "Living types" },
       { href: "/room-types", label: "Room types" },
     ],

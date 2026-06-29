@@ -12,6 +12,7 @@ from app.routers import (  # noqa: F401 (registered below)
     apartment_detail,
     apartment_insights,
     apartment_report,
+    aux_tags,
     budget,
     building_overview,
     communal_daily_series,
@@ -58,6 +59,7 @@ app.include_router(room_roles.router)
 app.include_router(room_types.router)
 app.include_router(rooms.router)
 app.include_router(meters.router)
+app.include_router(aux_tags.router)
 app.include_router(tariffs.router)
 app.include_router(usage.router)
 app.include_router(apartment_report.router)
